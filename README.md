@@ -8,7 +8,7 @@
 [![GitHub Release](https://img.shields.io/github/release/chr-braun/awtrix-mqtt-bridge.svg?style=for-the-badge&color=blue)](https://github.com/chr-braun/awtrix-mqtt-bridge/releases)
 [![License](https://img.shields.io/github/license/chr-braun/awtrix-mqtt-bridge.svg?style=for-the-badge&color=yellow)](LICENSE)
 
-> ⚠️ **Work in Progress (v1.0.1)** - This integration is actively being developed and improved. Recent fixes include MQTT callback API compatibility and enhanced debugging capabilities. Please report any issues you encounter!
+> ⚠️ **Work in Progress (v1.1.0)** - This integration is actively being developed and improved. Recent additions include comprehensive MQTT health check system, enhanced diagnostics, and detailed logging capabilities. Please report any issues you encounter!
 
 A user-friendly Home Assistant integration that automatically forwards MQTT sensor data to Awtrix displays - with complete GUI support!
 
