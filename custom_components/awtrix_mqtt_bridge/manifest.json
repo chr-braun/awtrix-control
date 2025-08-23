@@ -17,5 +17,6 @@
   ],
   "config_flow": true,
   "iot_class": "local_push",
-  "integration_type": "hub"
+  "integration_type": "hub",
+  "loggers": ["custom_components.awtrix_mqtt_bridge"]
 }

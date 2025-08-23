@@ -1,5 +1,9 @@
 # 🎨 Awtrix MQTT Bridge for Home Assistant
 
+<div align="center">
+  <img src="icon-large.svg" alt="Awtrix MQTT Bridge Icon" width="200" height="200">
+</div>
+
 [![HACS Badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/release/chr-braun/awtrix-mqtt-bridge.svg?style=for-the-badge&color=blue)](https://github.com/chr-braun/awtrix-mqtt-bridge/releases)
 [![License](https://img.shields.io/github/license/chr-braun/awtrix-mqtt-bridge.svg?style=for-the-badge&color=yellow)](LICENSE)
