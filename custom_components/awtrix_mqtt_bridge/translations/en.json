@@ -49,6 +49,10 @@
     "create_template": {
       "name": "Create template",
       "description": "Creates a custom template for sensor mappings"
+    },
+    "mqtt_diagnostic": {
+      "name": "MQTT Diagnostic",
+      "description": "Tests MQTT connection independently for debugging"
     }
   }
 }

@@ -16,6 +16,7 @@ SERVICE_SEND_TO_AWTRIX = "send_to_awtrix"
 SERVICE_CLEAR_ALL_MAPPINGS = "clear_all_mappings"
 SERVICE_ADD_BULK_MAPPINGS = "add_bulk_mappings"
 SERVICE_CREATE_TEMPLATE = "create_template"
+SERVICE_MQTT_DIAGNOSTIC = "mqtt_diagnostic"
 
 ADD_SENSOR_MAPPING_SCHEMA = vol.Schema({
     vol.Required("sensor_entity_id"): cv.entity_id,
@@ -46,6 +47,13 @@ CREATE_TEMPLATE_SCHEMA = vol.Schema({
         vol.Optional("text_effect", default="none"): vol.In(["none", "scroll", "fade", "blink", "rainbow"]),
         vol.Optional("text_format", default="{value}"): cv.string,
     })])
+})
+
+MQTT_DIAGNOSTIC_SCHEMA = vol.Schema({
+    vol.Required("mqtt_host"): cv.string,
+    vol.Optional("mqtt_port", default=1883): vol.Coerce(int),
+    vol.Optional("mqtt_username"): cv.string,
+    vol.Optional("mqtt_password"): cv.string,
 })
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -241,7 +249,103 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         mappings = call.data["mappings"]
         
         _LOGGER.info("Created custom template %s with %d mappings", template_name, len(mappings))
-        # In a real implementation, you'd store this in a file or database
+    async def mqtt_diagnostic_service(call: ServiceCall) -> None:
+        """MQTT diagnostic service to test connection independently."""
+        import paho.mqtt.client as mqtt
+        import socket
+        import asyncio
+        
+        host = call.data["mqtt_host"]
+        port = call.data.get("mqtt_port", 1883)
+        username = call.data.get("mqtt_username")
+        password = call.data.get("mqtt_password")
+        
+        _LOGGER.info("🔍 MQTT Diagnostic Test Starting...")
+        _LOGGER.info("Host: %s, Port: %s, Username: %s", host, port, username or "(none)")
+        
+        # Test 1: Network connectivity
+        try:
+            _LOGGER.info("🌐 Testing network connectivity...")
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            
+            if result == 0:
+                _LOGGER.info("✅ Network connectivity OK")
+            else:
+                _LOGGER.error("❌ Network connectivity FAILED - Port %s not reachable on %s", port, host)
+                return
+        except Exception as exc:
+            _LOGGER.error("❌ Network test exception: %s", exc)
+            return
+        
+        # Test 2: MQTT protocol test
+        try:
+            _LOGGER.info("🔗 Testing MQTT protocol...")
+            
+            connection_result = {"connected": False, "rc": None, "error": None}
+            
+            def on_connect(client, userdata, flags, rc):
+                _LOGGER.info("📥 MQTT Connect callback: rc=%s", rc)
+                userdata["connected"] = rc == 0
+                userdata["rc"] = rc
+                
+                error_messages = {
+                    0: "✅ Connection successful",
+                    1: "❌ Protocol version not supported",
+                    2: "❌ Client ID rejected",
+                    3: "❌ Server unavailable",
+                    4: "❌ Bad username/password",
+                    5: "❌ Not authorized"
+                }
+                _LOGGER.info(error_messages.get(rc, f"❌ Unknown error {rc}"))
+            
+            def on_log(client, userdata, level, buf):
+                _LOGGER.debug("MQTT Log: %s", buf)
+            
+            client = mqtt.Client("awtrix_diagnostic_test")
+            client.on_connect = on_connect
+            client.on_log = on_log
+            client.user_data_set(connection_result)
+            
+            if username:
+                _LOGGER.info("🔐 Setting credentials...")
+                client.username_pw_set(username, password)
+            
+            # Connect
+            await hass.async_add_executor_job(client.connect, host, port, 10)
+            
+            # Wait for response
+            for _ in range(50):  # 5 second timeout
+                if connection_result["rc"] is not None:
+                    break
+                await asyncio.sleep(0.1)
+            
+            if connection_result["rc"] is None:
+                _LOGGER.error("❌ MQTT connection timeout")
+            elif connection_result["connected"]:
+                _LOGGER.info("🎉 MQTT Diagnostic PASSED - Connection successful!")
+                
+                # Test publish
+                try:
+                    await hass.async_add_executor_job(
+                        client.publish, "awtrix_test/diagnostic", "Hello from Awtrix Bridge!"
+                    )
+                    _LOGGER.info("📤 Test message published successfully")
+                except Exception as pub_exc:
+                    _LOGGER.error("❌ Publish test failed: %s", pub_exc)
+            else:
+                _LOGGER.error("❌ MQTT Diagnostic FAILED - Check the error above")
+            
+            # Cleanup
+            try:
+                await hass.async_add_executor_job(client.disconnect)
+            except Exception:
+                pass
+                
+        except Exception as exc:
+            _LOGGER.error("❌ MQTT diagnostic exception: %s", exc)
     
     # Register services
     hass.services.async_register(
@@ -282,4 +386,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_CREATE_TEMPLATE,
         create_template_service,
         schema=CREATE_TEMPLATE_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_MQTT_DIAGNOSTIC,
+        mqtt_diagnostic_service,
+        schema=MQTT_DIAGNOSTIC_SCHEMA
     )

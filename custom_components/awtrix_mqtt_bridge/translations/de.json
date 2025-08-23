@@ -49,6 +49,10 @@
     "create_template": {
       "name": "Vorlage erstellen",
       "description": "Erstellt eine benutzerdefinierte Vorlage für Sensor-Mappings"
+    },
+    "mqtt_diagnostic": {
+      "name": "MQTT Diagnose",
+      "description": "Testet die MQTT-Verbindung unabhängig für Debugging"
     }
   }
 }

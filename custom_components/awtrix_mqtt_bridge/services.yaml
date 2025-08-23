@@ -132,3 +132,35 @@ create_template:
       required: true
       selector:
         object:
+
+mqtt_diagnostic:
+  name: MQTT Diagnose
+  description: Testet die MQTT-Verbindung unabhängig für Debugging
+  fields:
+    mqtt_host:
+      name: MQTT Host
+      description: MQTT Server Host/IP
+      required: true
+      selector:
+        text:
+    mqtt_port:
+      name: MQTT Port
+      description: MQTT Server Port
+      required: false
+      default: 1883
+      selector:
+        number:
+          min: 1
+          max: 65535
+    mqtt_username:
+      name: MQTT Benutzername
+      description: MQTT Benutzername (optional)
+      required: false
+      selector:
+        text:
+    mqtt_password:
+      name: MQTT Passwort
+      description: MQTT Passwort (optional)
+      required: false
+      selector:
+        text:
