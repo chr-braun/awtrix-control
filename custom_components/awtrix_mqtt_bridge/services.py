@@ -304,7 +304,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             def on_log(client, userdata, level, buf):
                 _LOGGER.debug("MQTT Log: %s", buf)
             
-            client = mqtt.Client("awtrix_diagnostic_test")
+            client = mqtt.Client(
+                client_id="awtrix_diagnostic_test",
+                callback_api_version=mqtt.CallbackAPIVersion.VERSION1
+            )
             client.on_connect = on_connect
             client.on_log = on_log
             client.user_data_set(connection_result)

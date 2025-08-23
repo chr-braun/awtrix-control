@@ -57,7 +57,10 @@ class AwtrixMqttCoordinator(DataUpdateCoordinator):
             except Exception:
                 pass  # Ignore errors when cleaning up
         
-        self.mqtt_client = mqtt.Client(self.config[CONF_MQTT_CLIENT_ID])
+        self.mqtt_client = mqtt.Client(
+            client_id=self.config[CONF_MQTT_CLIENT_ID],
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION1
+        )
         
         if self.config.get(CONF_MQTT_USERNAME):
             self.mqtt_client.username_pw_set(

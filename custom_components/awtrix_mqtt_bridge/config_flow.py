@@ -111,7 +111,10 @@ class AwtrixMqttBridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         def on_log(client, userdata, level, buf):
             _LOGGER.debug("MQTT log: %s", buf)
         
-        client = mqtt.Client(config[CONF_MQTT_CLIENT_ID])
+        client = mqtt.Client(
+            client_id=config[CONF_MQTT_CLIENT_ID],
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION1
+        )
         client.on_connect = on_connect
         client.on_disconnect = on_disconnect
         client.on_log = on_log
