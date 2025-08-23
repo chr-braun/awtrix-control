@@ -1,0 +1,134 @@
+add_sensor_mapping:
+  name: Sensor zu Awtrix hinzufügen
+  description: Fügt einen MQTT Sensor zu einem Awtrix Display-Slot hinzu
+  fields:
+    sensor_entity_id:
+      name: Sensor Entity ID
+      description: Die Entity ID des MQTT Sensors
+      required: true
+      selector:
+        entity:
+          domain: sensor
+    slot_id:
+      name: Awtrix Slot ID  
+      description: Display-Slot auf dem Awtrix (1-5)
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 5
+          mode: box
+    display_name:
+      name: Anzeigename
+      description: Name wie er auf dem Display erscheinen soll
+      required: false
+      selector:
+        text:
+    icon_id:
+      name: Icon ID
+      description: Awtrix Icon ID (1-32 für Demo Icons)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 5000
+          mode: box
+    text_color:
+      name: Textfarbe
+      description: Farbe des Texts (RGB Hex)
+      required: false
+      default: "#ffffff"
+      selector:
+        color_rgb:
+    text_effect:
+      name: Text Effekt
+      description: Visueller Effekt für den Text
+      required: false
+      default: "none"
+      selector:
+        select:
+          options:
+            - "none"
+            - "scroll" 
+            - "fade"
+            - "blink"
+            - "rainbow"
+    display_duration:
+      name: Anzeigedauer
+      description: Wie lange soll der Text angezeigt werden (Sekunden)
+      required: false
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 60
+          mode: box
+    text_format:
+      name: Text Format
+      description: Format string für die Anzeige (verwende {value} für Sensorwert)
+      required: false
+      default: "{value}"
+      selector:
+        text:
+
+remove_sensor_mapping:
+  name: Sensor von Awtrix entfernen
+  description: Entfernt einen Sensor vom Awtrix Display
+  fields:
+    sensor_entity_id:
+      name: Sensor Entity ID
+      description: Die Entity ID des zu entfernenden Sensors
+      required: true
+      selector:
+        entity:
+          domain: sensor
+
+send_to_awtrix:
+  name: An Awtrix senden
+  description: Sendet alle aktuellen Sensor-Mappings an das Awtrix Display
+  fields: {}
+
+clear_all_mappings:
+  name: Alle Mappings löschen
+  description: Entfernt alle Sensor zu Awtrix Zuordnungen
+  fields: {}
+
+add_bulk_mappings:
+  name: Bulk Mappings hinzufügen
+  description: Fügt mehrere Sensor-Mappings basierend auf Vorlagen hinzu
+  fields:
+    template_name:
+      name: Vorlage
+      description: Vordefinierte Vorlage für Sensor-Mappings
+      required: true
+      selector:
+        select:
+          options:
+            - "weather"
+            - "energy"
+            - "smart_home"
+    auto_discover:
+      name: Auto-Erkennung
+      description: Automatische Erkennung passender Sensoren
+      required: false
+      default: true
+      selector:
+        boolean:
+
+create_template:
+  name: Vorlage erstellen
+  description: Erstellt eine benutzerdefinierte Vorlage für Sensor-Mappings
+  fields:
+    template_name:
+      name: Vorlagenname
+      description: Name der benutzerdefinierten Vorlage
+      required: true
+      selector:
+        text:
+    mappings:
+      name: Mappings
+      description: Liste der Sensor-Mapping-Definitionen
+      required: true
+      selector:
+        object:

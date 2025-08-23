@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Awtrix MQTT Bridge</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .main-content {
+            padding: 30px;
+        }
+        .card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background: #5a6fd8;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .mapping-list {
+            margin-top: 20px;
+        }
+        .mapping-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mapping-info {
+            flex-grow: 1;
+        }
+        .mapping-info strong {
+            color: #667eea;
+        }
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .slot-btn {
+            padding: 10px;
+            border: 2px solid #ddd;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .slot-btn:hover {
+            border-color: #667eea;
+            background: #e9ecef;
+        }
+        .slot-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        .icon-selector {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .icon-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        .icon-preview img {
+            width: 32px;
+            height: 32px;
+        }
+        .popular-icons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .icon-btn {
+            padding: 8px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .icon-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .icon-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        .live-preview {
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin: 15px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .preview-text {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .preview-scrolling {
+            animation: scroll-text 3s linear infinite;
+        }
+        @keyframes scroll-text {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .preview-blinking {
+            animation: blink 1s ease-in-out infinite;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        .preview-rainbow {
+            background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            background-size: 400% 400%;
+            animation: rainbow 2s ease infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 4px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .main-content {
+                padding: 15px;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .slot-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .popular-icons {
+                justify-content: center;
+            }
+            
+            .icon-btn {
+                font-size: 14px;
+                padding: 6px;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+                margin-bottom: 10px;
+                width: 100%;
+            }
+            
+            .form-group input,
+            .form-group select {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .slot-btn {
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .live-preview {
+                min-height: 40px;
+                font-size: 14px;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+                color: #e0e0e0;
+            }
+            
+            .container {
+                background: #2d2d2d;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            }
+            
+            .card {
+                background: #3d3d3d;
+                border-left-color: #667eea;
+            }
+            
+            .form-group input,
+            .form-group select {
+                background: #4d4d4d;
+                border-color: #555;
+                color: #e0e0e0;
+            }
+            
+            .slot-btn {
+                background: #4d4d4d;
+                border-color: #555;
+                color: #e0e0e0;
+            }
+            
+            .icon-btn {
+                background: #4d4d4d;
+                border-color: #555;
+            }
+            
+            .icon-preview {
+                background: #4d4d4d;
+                border-color: #555;
+            }
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Awtrix MQTT Bridge</h1>
+            <p>Connect your MQTT sensors to Awtrix displays</p>
+        </div>
+        <div class="main-content">
+            <div class="grid">
+                <div class="card">
+                    <h3>📊 Status</h3>
+                    <p><strong>MQTT Status:</strong> <span id="mqtt-status" class="status status-disconnected">Unknown</span></p>
+                    <p><strong>Active Mappings:</strong> <span id="mapping-count">0</span></p>
+                    <button class="btn" onclick="refreshStatus()">🔄 Refresh Status</button>
+                </div>
+                
+                <div class="card">
+                    <h3>🎨 Live Preview</h3>
+                    <div class="live-preview">
+                        <div id="preview-content" class="preview-text">Select sensor to preview</div>
+                    </div>
+                    <small>Preview how your sensor will appear on the Awtrix display</small>
+                </div>
+            </div>
+                
+                <div class="card">
+                    <h3>➕ Add Sensor Mapping</h3>
+                    <form id="mapping-form">
+                        <div class="form-group">
+                            <label for="sensor-select">Select Sensor:</label>
+                            <select id="sensor-select" required>
+                                <option value="">Choose a sensor...</option>
+                            </select>
+                            <small>Automatically discovers all available sensors</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="slot-id">Display Slot (1-8):</label>
+                            <div class="slot-grid">
+                                <button type="button" class="slot-btn" data-slot="1">1</button>
+                                <button type="button" class="slot-btn" data-slot="2">2</button>
+                                <button type="button" class="slot-btn" data-slot="3">3</button>
+                                <button type="button" class="slot-btn" data-slot="4">4</button>
+                                <button type="button" class="slot-btn" data-slot="5">5</button>
+                                <button type="button" class="slot-btn" data-slot="6">6</button>
+                                <button type="button" class="slot-btn" data-slot="7">7</button>
+                                <button type="button" class="slot-btn" data-slot="8">8</button>
+                            </div>
+                            <input type="hidden" id="slot-id" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="display-name">Display Name:</label>
+                            <input type="text" id="display-name" placeholder="Temperature">
+                        </div>
+                        <div class="form-group">
+                            <label for="icon-search">Icon Selection:</label>
+                            <div class="icon-selector">
+                                <input type="text" id="icon-search" placeholder="Search icons (e.g., weather, temperature)">
+                                <div class="icon-preview">
+                                    <img id="icon-preview-img" src="https://developer.lametric.com/content/apps/icon_thumbs/1.png" alt="Icon Preview">
+                                    <span id="icon-preview-id">ID: 1</span>
+                                </div>
+                                <div class="popular-icons">
+                                    <button type="button" class="icon-btn" data-icon="2422" title="Sun">☀️</button>
+                                    <button type="button" class="icon-btn" data-icon="2109" title="Temperature">🌡️</button>
+                                    <button type="button" class="icon-btn" data-icon="51658" title="Humidity">💧</button>
+                                    <button type="button" class="icon-btn" data-icon="2313" title="Home">🏠</button>
+                                    <button type="button" class="icon-btn" data-icon="2114" title="Energy">⚡</button>
+                                    <button type="button" class="icon-btn" data-icon="120" title="Clock">🕐</button>
+                                </div>
+                            </div>
+                            <input type="hidden" id="icon-id" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="text-color">Text Color:</label>
+                            <input type="color" id="text-color" value="#ffffff">
+                        </div>
+                        <div class="form-group">
+                            <label for="text-effect">Text Effect:</label>
+                            <select id="text-effect">
+                                <option value="none">None</option>
+                                <option value="scroll">Scroll</option>
+                                <option value="fade">Fade</option>
+                                <option value="blink">Blink</option>
+                                <option value="rainbow">Rainbow</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="display-duration">Display Duration (seconds):</label>
+                            <input type="number" id="display-duration" min="1" max="60" value="5">
+                        </div>
+                        <div class="form-group">
+                            <label for="text-format">Text Format:</label>
+                            <input type="text" id="text-format" value="{value}" placeholder="e.g., {value}°C">
+                            <small>Use {value} for sensor value</small>
+                        </div>
+                        <button type="submit" class="btn">Add Mapping</button>
+                        <button type="button" class="btn" onclick="loadTemplate()">📋 Load Template</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>📋 Current Mappings</h3>
+                <div id="mappings-list" class="mapping-list">
+                    <p>No mappings configured yet.</p>
+                </div>
+                <button class="btn" onclick="loadMappings()">🔄 Refresh Mappings</button>
+                <button class="btn btn-danger" onclick="clearAllMappings()">🗑️ Clear All Mappings</button>
+            </div>
+            
+            <div class="card">
+                <h3>🔧 Actions</h3>
+                <button class="btn" onclick="sendToAwtrix()">📤 Send to Awtrix</button>
+                <button class="btn" onclick="testConnection()">🔌 Test Connection</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Get Home Assistant instance
+        const hass = window.parent.hass || window.hass;
+        
+        // Initialize the interface
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSensorDiscovery();
+            initializeSlotSelection();
+            initializeIconSelection();
+            initializeLivePreview();
+            loadMappings();
+            refreshStatus();
+            
+            // Refresh status every 30 seconds
+            setInterval(refreshStatus, 30000);
+        });
+        
+        // Discover and populate sensors
+        function initializeSensorDiscovery() {
+            if (!hass || !hass.states) return;
+            
+            const sensorSelect = document.getElementById('sensor-select');
+            const sensors = Object.keys(hass.states)
+                .filter(entity_id => entity_id.startsWith('sensor.'))
+                .sort();
+            
+            sensors.forEach(entity_id => {
+                const state = hass.states[entity_id];
+                const option = document.createElement('option');
+                option.value = entity_id;
+                option.textContent = `${state.attributes.friendly_name || entity_id} (${state.state})`;
+                sensorSelect.appendChild(option);
+            });
+        }
+        
+        // Handle slot selection
+        function initializeSlotSelection() {
+            const slotButtons = document.querySelectorAll('.slot-btn');
+            const slotInput = document.getElementById('slot-id');
+            
+            slotButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    slotButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    slotInput.value = btn.dataset.slot;
+                    updateLivePreview();
+                });
+            });
+            
+            // Set default slot
+            slotButtons[0].click();
+        }
+        
+        // Handle icon selection
+        function initializeIconSelection() {
+            const iconButtons = document.querySelectorAll('.icon-btn');
+            const iconInput = document.getElementById('icon-id');
+            const iconPreviewImg = document.getElementById('icon-preview-img');
+            const iconPreviewId = document.getElementById('icon-preview-id');
+            const iconSearch = document.getElementById('icon-search');
+            
+            iconButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    iconButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const iconId = btn.dataset.icon;
+                    iconInput.value = iconId;
+                    iconPreviewImg.src = `https://developer.lametric.com/content/apps/icon_thumbs/${iconId}.png`;
+                    iconPreviewId.textContent = `ID: ${iconId}`;
+                    updateLivePreview();
+                });
+            });
+            
+            // Handle manual icon search
+            iconSearch.addEventListener('input', (e) => {
+                const iconId = parseInt(e.target.value) || 1;
+                iconInput.value = iconId;
+                iconPreviewImg.src = `https://developer.lametric.com/content/apps/icon_thumbs/${iconId}.png`;
+                iconPreviewId.textContent = `ID: ${iconId}`;
+                updateLivePreview();
+            });
+            
+        
+        // Initialize live preview
+        function initializeLivePreview() {
+            const form = document.getElementById('mapping-form');
+            const inputs = form.querySelectorAll('input, select');
+            
+            inputs.forEach(input => {
+                input.addEventListener('change', updateLivePreview);
+                input.addEventListener('input', updateLivePreview);
+            });
+        }
+        
+        // Update live preview
+        function updateLivePreview() {
+            const sensorSelect = document.getElementById('sensor-select');
+            const displayName = document.getElementById('display-name').value;
+            const textColor = document.getElementById('text-color').value;
+            const textEffect = document.getElementById('text-effect').value;
+            const textFormat = document.getElementById('text-format').value;
+            const previewContent = document.getElementById('preview-content');
+            
+            if (!sensorSelect.value) {
+                previewContent.textContent = 'Select sensor to preview';
+                previewContent.className = 'preview-text';
+                return;
+            }
+            
+            // Get sensor value
+            const sensorState = hass && hass.states && hass.states[sensorSelect.value];
+            const sensorValue = sensorState ? sensorState.state : '23.5';
+            
+            // Format display text
+            const formattedText = textFormat.replace('{value}', sensorValue);
+            const finalText = displayName ? `${displayName}: ${formattedText}` : formattedText;
+            
+            // Apply styling
+            previewContent.textContent = finalText;
+            previewContent.style.color = textColor;
+            
+            // Apply effects
+            previewContent.className = 'preview-text';
+            if (textEffect === 'scroll') {
+                previewContent.classList.add('preview-scrolling');
+            } else if (textEffect === 'blink') {
+                previewContent.classList.add('preview-blinking');
+            } else if (textEffect === 'rainbow') {
+                previewContent.classList.add('preview-rainbow');
+            }
+        }
+        
+        // Smart templates
+        const templates = {
+            weather: {
+                name: 'Weather Station',
+                sensors: [
+                    { pattern: 'temperature', icon: 2109, color: '#ff6b35', effect: 'none', format: '{value}°C' },
+                    { pattern: 'humidity', icon: 51658, color: '#4a90e2', effect: 'none', format: '{value}%' },
+                    { pattern: 'pressure', icon: 888, color: '#ffffff', effect: 'none', format: '{value} hPa' }
+                ]
+            },
+            energy: {
+                name: 'Energy Monitoring',
+                sensors: [
+                    { pattern: 'power', icon: 2114, color: '#f7ca18', effect: 'scroll', format: '{value}W' },
+                    { pattern: 'solar', icon: 2422, color: '#2ecc71', effect: 'fade', format: '{value}W' },
+                    { pattern: 'battery', icon: 120, color: '#e74c3c', effect: 'blink', format: '{value}%' }
+                ]
+            },
+            smart_home: {
+                name: 'Smart Home',
+                sensors: [
+                    { pattern: 'motion', icon: 1712, color: '#9b59b6', effect: 'blink', format: '{value}' },
+                    { pattern: 'door', icon: 1465, color: '#34495e', effect: 'none', format: '{value}' },
+                    { pattern: 'light', icon: 1762, color: '#f39c12', effect: 'fade', format: '{value}' }
+                ]
+            }
+        };
+        
+        // Load template
+        function loadTemplate() {
+            const templateNames = Object.keys(templates);
+            const selectedTemplate = prompt(
+                `Choose a template:\n${templateNames.map((t, i) => `${i + 1}. ${templates[t].name}`).join('\n')}\n\nEnter number:`,
+                '1'
+            );
+            
+            if (!selectedTemplate) return;
+            
+            const templateIndex = parseInt(selectedTemplate) - 1;
+            const templateKey = templateNames[templateIndex];
+            const template = templates[templateKey];
+            
+            if (!template) {
+                alert('Invalid template selection');
+                return;
+            }
+            
+            // Auto-map sensors based on template
+            autoMapSensors(template);
+        }
+        
+        // Auto-map sensors based on template
+        async function autoMapSensors(template) {
+            if (!hass || !hass.states) return;
+            
+            const availableSensors = Object.keys(hass.states)
+                .filter(entity_id => entity_id.startsWith('sensor.'))
+                .map(entity_id => ({
+                    id: entity_id,
+                    name: entity_id.toLowerCase()
+                }));
+            
+            let slotCounter = 1;
+            
+            for (const sensorTemplate of template.sensors) {
+                // Find matching sensor
+                const matchingSensor = availableSensors.find(sensor => 
+                    sensor.name.includes(sensorTemplate.pattern)
+                );
+                
+                if (matchingSensor && slotCounter <= 8) {
+                    try {
+                        await hass.callService('awtrix_mqtt_bridge', 'add_sensor_mapping', {
+                            sensor_entity_id: matchingSensor.id,
+                            slot_id: slotCounter,
+                            display_name: sensorTemplate.pattern.charAt(0).toUpperCase() + sensorTemplate.pattern.slice(1),
+                            icon_id: sensorTemplate.icon,
+                            text_color: sensorTemplate.color,
+                            text_effect: sensorTemplate.effect,
+                            text_format: sensorTemplate.format
+                        });
+                        
+                        slotCounter++;
+                    } catch (error) {
+                        console.error('Error mapping sensor:', error);
+                    }
+                }
+            }
+            
+            alert(`✅ Template applied! Mapped ${slotCounter - 1} sensors.`);
+            loadMappings();
+        }
+        
+        // Add sensor mapping
+        document.getElementById('mapping-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const sensorId = document.getElementById('sensor-select').value;
+            const slotId = parseInt(document.getElementById('slot-id').value);
+            const displayName = document.getElementById('display-name').value;
+            const iconId = parseInt(document.getElementById('icon-id').value);
+            const textColor = document.getElementById('text-color').value;
+            const textEffect = document.getElementById('text-effect').value;
+            const displayDuration = parseInt(document.getElementById('display-duration').value);
+            const textFormat = document.getElementById('text-format').value;
+            
+            if (!sensorId || !slotId) {
+                alert('⚠️ Please select a sensor and slot');
+                return;
+            }
+            
+            try {
+                await hass.callService('awtrix_mqtt_bridge', 'add_sensor_mapping', {
+                    sensor_entity_id: sensorId,
+                    slot_id: slotId,
+                    display_name: displayName,
+                    icon_id: iconId,
+                    text_color: textColor,
+                    text_effect: textEffect,
+                    display_duration: displayDuration,
+                    text_format: textFormat
+                });
+                
+                alert('✅ Mapping added successfully!');
+                document.getElementById('mapping-form').reset();
+                // Reset UI state
+                document.querySelectorAll('.slot-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.icon-btn').forEach(btn => btn.classList.remove('active'));
+                initializeSlotSelection();
+                initializeIconSelection();
+                loadMappings();
+                updateLivePreview();
+            } catch (error) {
+                alert('❌ Error adding mapping: ' + error.message);
+            }
+        });
+        
+        // Auto-suggest based on sensor type
+        document.getElementById('sensor-select').addEventListener('change', (e) => {
+            const sensorId = e.target.value;
+            if (!sensorId) return;
+            
+            const sensorName = sensorId.toLowerCase();
+            
+            // Auto-fill display name
+            const displayNameField = document.getElementById('display-name');
+            if (!displayNameField.value) {
+                const baseName = sensorId.replace('sensor.', '').replace(/_/g, ' ');
+                displayNameField.value = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+            }
+            
+            // Auto-suggest icon and settings based on sensor type
+            const suggestions = getSensorSuggestions(sensorName);
+            if (suggestions) {
+                // Update icon
+                const iconInput = document.getElementById('icon-id');
+                iconInput.value = suggestions.icon;
+                document.getElementById('icon-preview-img').src = `https://developer.lametric.com/content/apps/icon_thumbs/${suggestions.icon}.png`;
+                document.getElementById('icon-preview-id').textContent = `ID: ${suggestions.icon}`;
+                
+                // Update color
+                document.getElementById('text-color').value = suggestions.color;
+                
+                // Update format
+                document.getElementById('text-format').value = suggestions.format;
+                
+                // Update effect
+                document.getElementById('text-effect').value = suggestions.effect;
+            }
+            
+            updateLivePreview();
+        });
+        
+        // Get sensor suggestions based on sensor name
+        function getSensorSuggestions(sensorName) {
+            const suggestions = {
+                temperature: { icon: 2109, color: '#ff6b35', format: '{value}°C', effect: 'none' },
+                humidity: { icon: 51658, color: '#4a90e2', format: '{value}%', effect: 'none' },
+                pressure: { icon: 888, color: '#ffffff', format: '{value} hPa', effect: 'none' },
+                battery: { icon: 120, color: '#27ae60', format: '{value}%', effect: 'none' },
+                power: { icon: 2114, color: '#f7ca18', format: '{value}W', effect: 'scroll' },
+                energy: { icon: 2114, color: '#f39c12', format: '{value} kWh', effect: 'none' },
+                solar: { icon: 2422, color: '#2ecc71', format: '{value}W', effect: 'fade' },
+                weather: { icon: 2422, color: '#3498db', format: '{value}', effect: 'none' },
+                motion: { icon: 1712, color: '#9b59b6', format: '{value}', effect: 'blink' },
+                door: { icon: 1465, color: '#34495e', format: '{value}', effect: 'none' },
+                window: { icon: 1465, color: '#7f8c8d', format: '{value}', effect: 'none' },
+                light: { icon: 1762, color: '#f39c12', format: '{value}', effect: 'fade' },
+                switch: { icon: 1762, color: '#95a5a6', format: '{value}', effect: 'none' },
+                water: { icon: 51658, color: '#3498db', format: '{value}', effect: 'none' },
+                gas: { icon: 888, color: '#e74c3c', format: '{value}', effect: 'blink' },
+                smoke: { icon: 888, color: '#e74c3c', format: '{value}', effect: 'blink' },
+                co2: { icon: 888, color: '#e67e22', format: '{value} ppm', effect: 'none' },
+                air: { icon: 888, color: '#9b59b6', format: '{value}', effect: 'none' }
+            };
+            
+            for (const [key, suggestion] of Object.entries(suggestions)) {
+                if (sensorName.includes(key)) {
+                    return suggestion;
+                }
+            }
+            
+            return null;
+        }
+        
+        // Send to Awtrix
+        async function sendToAwtrix() {
+            try {
+                await hass.callService('awtrix_mqtt_bridge', 'send_to_awtrix', {});
+                alert('✅ Data sent to Awtrix!');
+            } catch (error) {
+                alert('❌ Error sending to Awtrix: ' + error.message);
+            }
+        }
+        
+        // Clear all mappings
+        async function clearAllMappings() {
+            if (confirm('⚠️ Are you sure you want to clear all mappings?')) {
+                try {
+                    await hass.callService('awtrix_mqtt_bridge', 'clear_all_mappings', {});
+                    alert('✅ All mappings cleared!');
+                    loadMappings();
+                } catch (error) {
+                    alert('❌ Error clearing mappings: ' + error.message);
+                }
+            }
+        }
+        
+        // Remove specific mapping
+        async function removeMapping(sensorId) {
+            try {
+                await hass.callService('awtrix_mqtt_bridge', 'remove_sensor_mapping', {
+                    sensor_entity_id: sensorId
+                });
+                alert('✅ Mapping removed!');
+                loadMappings();
+            } catch (error) {
+                alert('❌ Error removing mapping: ' + error.message);
+            }
+        }
+        
+        // Load current mappings (placeholder - would need backend API)
+        function loadMappings() {
+            const mappingsList = document.getElementById('mappings-list');
+            mappingsList.innerHTML = '<p>Mappings are managed through Home Assistant services. Use Developer Tools → Services to view current mappings.</p>';
+        }
+        
+        // Refresh status
+        function refreshStatus() {
+            if (hass && hass.states) {
+                const bridgeStatus = hass.states['sensor.awtrix_mqtt_bridge_status'];
+                const mappingCount = hass.states['sensor.awtrix_active_mappings'];
+                
+                if (bridgeStatus) {
+                    const statusElement = document.getElementById('mqtt-status');
+                    statusElement.textContent = bridgeStatus.state;
+                    statusElement.className = `status status-${bridgeStatus.state === 'connected' ? 'connected' : 'disconnected'}`;
+                }
+                
+                if (mappingCount) {
+                    document.getElementById('mapping-count').textContent = mappingCount.state;
+                }
+            }
+        }
+        
+        // Test connection
+        async function testConnection() {
+            alert('ℹ️ Check the Home Assistant logs for connection status details.');
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMappings();
+            refreshStatus();
+            
+            // Refresh status every 30 seconds
+            setInterval(refreshStatus, 30000);
+        });
+    </script>
+</body>
+</html>

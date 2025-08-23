@@ -1,0 +1,54 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Awtrix MQTT Bridge Setup",
+        "description": "Configure connection to your MQTT broker and Awtrix display",
+        "data": {
+          "mqtt_host": "MQTT Server Host/IP",
+          "mqtt_port": "MQTT Port",
+          "mqtt_username": "MQTT Username (optional)",
+          "mqtt_password": "MQTT Password (optional)",
+          "mqtt_client_id": "MQTT Client ID",
+          "mqtt_base_topic": "MQTT Base Topic",
+          "awtrix_host": "Awtrix Host/IP",
+          "awtrix_port": "Awtrix Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to MQTT or Awtrix",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unknown error occurred"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  },
+  "services": {
+    "add_sensor_mapping": {
+      "name": "Add sensor to Awtrix",
+      "description": "Adds an MQTT sensor to an Awtrix display slot"
+    },
+    "remove_sensor_mapping": {
+      "name": "Remove sensor from Awtrix",
+      "description": "Removes a sensor from the Awtrix display"
+    },
+    "send_to_awtrix": {
+      "name": "Send to Awtrix",
+      "description": "Sends all current sensor mappings to the Awtrix display"
+    },
+    "clear_all_mappings": {
+      "name": "Clear all mappings",
+      "description": "Removes all sensor to Awtrix mappings"
+    },
+    "add_bulk_mappings": {
+      "name": "Add bulk mappings",
+      "description": "Adds multiple sensor mappings based on templates"
+    },
+    "create_template": {
+      "name": "Create template",
+      "description": "Creates a custom template for sensor mappings"
+    }
+  }
+}
