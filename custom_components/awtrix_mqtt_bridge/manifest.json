@@ -1,7 +1,7 @@
 {
   "domain": "awtrix_mqtt_bridge",
   "name": "Awtrix MQTT Bridge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "documentation": "https://github.com/chr-braun/awtrix-mqtt-bridge",
   "issue_tracker": "https://github.com/chr-braun/awtrix-mqtt-bridge/issues",
   "dependencies": [
