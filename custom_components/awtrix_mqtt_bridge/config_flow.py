@@ -43,6 +43,7 @@ class AwtrixMqttBridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         errors = {}
+        description_placeholders = {}
 
         if user_input is not None:
             try:
@@ -56,60 +57,132 @@ class AwtrixMqttBridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data=user_input
                 )
             except Exception as exc:
-                _LOGGER.error("Error setting up Awtrix MQTT Bridge: %s", exc)
-                errors["base"] = "cannot_connect"
+                error_msg = str(exc)
+                _LOGGER.error("Error setting up Awtrix MQTT Bridge: %s", error_msg)
+                
+                # Provide specific error categories for better user experience
+                if "timeout" in error_msg.lower() or "no response" in error_msg.lower():
+                    errors["base"] = "mqtt_timeout"
+                    description_placeholders["error_details"] = (
+                        "MQTT broker not responding. Common solutions:\n"
+                        "• Check if Mosquitto add-on is running\n"
+                        "• Try 'core-mosquitto' as hostname for HA add-on\n"
+                        "• Verify MQTT broker IP address\n"
+                        "• Check firewall settings on port 1883"
+                    )
+                elif "authentication" in error_msg.lower() or "password" in error_msg.lower():
+                    errors["base"] = "mqtt_auth"
+                    description_placeholders["error_details"] = (
+                        "MQTT authentication failed:\n"
+                        "• Check username and password\n"
+                        "• Verify user permissions in MQTT broker\n"
+                        "• Try without credentials for anonymous access"
+                    )
+                elif "network" in error_msg.lower() or "not reachable" in error_msg.lower():
+                    errors["base"] = "mqtt_network"
+                    description_placeholders["error_details"] = (
+                        "Cannot reach MQTT broker:\n"
+                        "• Verify IP address or hostname\n"
+                        "• Check if MQTT broker is running\n"
+                        "• Ensure port 1883 is accessible\n"
+                        "• Check network connectivity"
+                    )
+                elif "awtrix" in error_msg.lower():
+                    errors["base"] = "awtrix_connection"
+                    description_placeholders["error_details"] = (
+                        "Cannot connect to Awtrix device:\n"
+                        "• Check Awtrix IP address\n"
+                        "• Verify Awtrix is powered on\n"
+                        "• Ensure port 7000 is accessible\n"
+                        "• Check network connectivity to device"
+                    )
+                else:
+                    errors["base"] = "cannot_connect"
+                    description_placeholders["error_details"] = error_msg
 
         return self.async_show_form(
             step_id="user", 
             data_schema=STEP_USER_DATA_SCHEMA, 
-            errors=errors
+            errors=errors,
+            description_placeholders=description_placeholders
         )
 
     async def _test_mqtt_connection(self, config):
-        """Test MQTT connection with detailed debugging."""
+        """Test MQTT connection with detailed debugging and automatic fallback configurations."""
         import paho.mqtt.client as mqtt
         import asyncio
         import socket
         
-        _LOGGER.info("Testing MQTT connection to %s:%s", config[CONF_MQTT_HOST], config[CONF_MQTT_PORT])
+        _LOGGER.info("🔍 Testing MQTT connection to %s:%s", config[CONF_MQTT_HOST], config[CONF_MQTT_PORT])
         
-        # First, test basic network connectivity
+        # First, test basic network connectivity with extended diagnostics
         try:
-            _LOGGER.debug("Testing network connectivity...")
+            _LOGGER.info("🌐 Testing network connectivity...")
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)
+            sock.settimeout(10)  # Increased timeout
             result = sock.connect_ex((config[CONF_MQTT_HOST], config[CONF_MQTT_PORT]))
             sock.close()
             
             if result != 0:
-                raise Exception(f"Network connection failed to {config[CONF_MQTT_HOST]}:{config[CONF_MQTT_PORT]} - Port not reachable")
+                # Try common MQTT broker configurations automatically
+                common_hosts = []
+                if config[CONF_MQTT_HOST] in ['localhost', '127.0.0.1']:
+                    common_hosts = ['core-mosquitto', 'mosquitto', 'homeassistant.local']
+                
+                for fallback_host in common_hosts:
+                    _LOGGER.info("🔄 Trying fallback host: %s", fallback_host)
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(5)
+                        result = sock.connect_ex((fallback_host, config[CONF_MQTT_PORT]))
+                        sock.close()
+                        if result == 0:
+                            _LOGGER.info("✅ Found working MQTT broker at %s:%s", fallback_host, config[CONF_MQTT_PORT])
+                            config = config.copy()
+                            config[CONF_MQTT_HOST] = fallback_host
+                            break
+                    except Exception:
+                        continue
+                else:
+                    raise Exception(f"❌ Network connection failed to {config[CONF_MQTT_HOST]}:{config[CONF_MQTT_PORT]} - Port not reachable. Tried fallback hosts: {common_hosts}")
             
-            _LOGGER.debug("Network connectivity OK")
+            _LOGGER.info("✅ Network connectivity OK to %s:%s", config[CONF_MQTT_HOST], config[CONF_MQTT_PORT])
         except Exception as exc:
-            _LOGGER.error("Network test failed: %s", exc)
+            _LOGGER.error("❌ Network test failed: %s", exc)
+            # Provide specific troubleshooting guidance
+            if "111" in str(exc) or "Connection refused" in str(exc):
+                guidance = (
+                    "MQTT broker is not running or not accessible. "
+                    "Try these steps:\n"
+                    "1. Check if Mosquitto add-on is installed and running\n"
+                    "2. For Mosquitto add-on, try host 'core-mosquitto'\n"
+                    "3. For external broker, verify IP address and firewall settings\n"
+                    "4. Check if port 1883 is open and not blocked"
+                )
+                raise Exception(f"Cannot reach MQTT broker: {guidance}")
             raise Exception(f"Cannot reach {config[CONF_MQTT_HOST]}:{config[CONF_MQTT_PORT]} - {exc}")
         
         def on_connect(client, userdata, flags, rc):
-            _LOGGER.debug("MQTT connect callback: rc=%s, flags=%s", rc, flags)
+            _LOGGER.info("📥 MQTT connect callback: rc=%s, flags=%s", rc, flags)
             userdata['connected'] = rc == 0
             userdata['rc'] = rc
             
-            # Log specific error codes
+            # Log specific error codes with emojis for better visibility
             error_messages = {
-                0: "Connection successful",
-                1: "Connection refused - incorrect protocol version",
-                2: "Connection refused - invalid client identifier",
-                3: "Connection refused - server unavailable",
-                4: "Connection refused - bad username or password",
-                5: "Connection refused - not authorised"
+                0: "✅ Connection successful",
+                1: "❌ Protocol version not supported by broker",
+                2: "❌ Client ID rejected by broker",
+                3: "❌ MQTT broker unavailable",
+                4: "❌ Bad username or password",
+                5: "❌ Authentication failed - not authorized"
             }
-            _LOGGER.info("MQTT connection result: %s", error_messages.get(rc, f"Unknown error code {rc}"))
+            _LOGGER.info("🔗 MQTT connection result: %s", error_messages.get(rc, f"❌ Unknown error code {rc}"))
         
         def on_disconnect(client, userdata, rc):
-            _LOGGER.debug("MQTT disconnect callback: rc=%s", rc)
+            _LOGGER.info("📤 MQTT disconnect callback: rc=%s", rc)
         
         def on_log(client, userdata, level, buf):
-            _LOGGER.debug("MQTT log: %s", buf)
+            _LOGGER.debug("📋 MQTT log: %s", buf)
         
         client = mqtt.Client(
             client_id=config[CONF_MQTT_CLIENT_ID],
@@ -120,58 +193,82 @@ class AwtrixMqttBridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         client.on_log = on_log
         
         if config.get(CONF_MQTT_USERNAME):
-            _LOGGER.debug("Setting MQTT credentials for user: %s", config[CONF_MQTT_USERNAME])
+            _LOGGER.info("🔐 Setting MQTT credentials for user: %s", config[CONF_MQTT_USERNAME])
             client.username_pw_set(
                 config[CONF_MQTT_USERNAME], 
                 config.get(CONF_MQTT_PASSWORD)
             )
         else:
-            _LOGGER.debug("No MQTT credentials provided - using anonymous connection")
+            _LOGGER.info("🔓 No MQTT credentials provided - using anonymous connection")
         
         userdata = {'connected': False, 'rc': None}
         client.user_data_set(userdata)
         
         try:
-            _LOGGER.debug("Attempting MQTT connection...")
+            _LOGGER.info("🚀 Attempting MQTT connection...")
             await self.hass.async_add_executor_job(
                 client.connect,
                 config[CONF_MQTT_HOST],
                 config[CONF_MQTT_PORT],
-                10
+                15  # Increased keepalive timeout
             )
             
-            # Wait for connection callback
-            for i in range(50):  # 5 second timeout
+            # Wait for connection callback with longer timeout
+            for i in range(100):  # 10 second timeout (increased from 5)
                 if userdata['rc'] is not None:
                     break
                 await asyncio.sleep(0.1)
+                
+                # Log progress every 2 seconds
+                if i % 20 == 0 and i > 0:
+                    _LOGGER.info("⏳ Still waiting for MQTT broker response... (%d seconds)", i // 10)
             
             if userdata['rc'] is None:
-                raise Exception("MQTT connection timeout - no response from broker")
+                raise Exception(
+                    "⏰ MQTT connection timeout - no response from broker after 10 seconds. "
+                    "This usually means:\n"
+                    "1. MQTT broker is not running\n"
+                    "2. Wrong host/IP address\n"
+                    "3. Network firewall blocking connection\n"
+                    "4. MQTT broker is overloaded or misconfigured"
+                )
             
             if not userdata['connected']:
                 error_messages = {
-                    1: "Protocol version not supported by broker",
-                    2: "Client ID rejected by broker", 
-                    3: "MQTT broker unavailable",
-                    4: "Invalid username or password",
-                    5: "Authentication failed - check credentials"
+                    1: "Protocol version not supported - try updating MQTT broker",
+                    2: "Client ID rejected - try changing the client ID", 
+                    3: "MQTT broker unavailable - check broker status and logs",
+                    4: "Invalid username or password - verify MQTT credentials",
+                    5: "Authentication failed - check user permissions in MQTT broker"
                 }
                 error_msg = error_messages.get(userdata['rc'], f"Unknown MQTT error code {userdata['rc']}")
-                raise Exception(f"MQTT connection failed: {error_msg}")
+                raise Exception(f"🚫 MQTT connection failed: {error_msg}")
                 
-            _LOGGER.info("MQTT connection successful!")
+            _LOGGER.info("🎉 MQTT connection successful!")
             await self.hass.async_add_executor_job(client.disconnect)
             return True
             
         except Exception as exc:
-            _LOGGER.error("MQTT connection test failed: %s", exc)
+            _LOGGER.error("💥 MQTT connection test failed: %s", exc)
             if "111" in str(exc) or "Connection refused" in str(exc):
-                raise Exception(f"MQTT broker not reachable at {config[CONF_MQTT_HOST]}:{config[CONF_MQTT_PORT]}. Check if MQTT broker is running and accessible.")
-            elif "authentication" in str(exc).lower() or "5" in str(exc):
-                raise Exception(f"MQTT authentication failed. Check username/password.")
+                raise Exception(
+                    f"🔌 MQTT broker not reachable at {config[CONF_MQTT_HOST]}:{config[CONF_MQTT_PORT]}. "
+                    "Check if MQTT broker is running and accessible. "
+                    "For Home Assistant Mosquitto add-on, try using 'core-mosquitto' as hostname."
+                )
+            elif "authentication" in str(exc).lower() or "4" in str(exc) or "5" in str(exc):
+                raise Exception(
+                    f"🔑 MQTT authentication failed. "
+                    "Check username/password in MQTT broker settings."
+                )
+            elif "timeout" in str(exc).lower():
+                raise Exception(
+                    f"⏰ MQTT broker not responding. "
+                    "This could be due to network issues, firewall, or broker being down. "
+                    "Try restarting your MQTT broker."
+                )
             else:
-                raise Exception(f"MQTT connection failed: {exc}")
+                raise Exception(f"🚨 MQTT connection failed: {exc}")
         finally:
             try:
                 await self.hass.async_add_executor_job(client.loop_stop)

@@ -18,8 +18,12 @@
     },
     "error": {
       "cannot_connect": "Failed to connect to MQTT or Awtrix",
+      "mqtt_timeout": "MQTT connection timeout - broker not responding. {error_details}",
+      "mqtt_auth": "MQTT authentication failed. {error_details}",
+      "mqtt_network": "Cannot reach MQTT broker. {error_details}",
+      "awtrix_connection": "Cannot connect to Awtrix device. {error_details}",
       "invalid_auth": "Invalid authentication",
-      "unknown": "Unknown error occurred"
+      "unknown": "Unknown error occurred: {error_details}"
     },
     "abort": {
       "already_configured": "Device is already configured"

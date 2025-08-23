@@ -131,6 +131,92 @@ Find more icons at: [Awtrix Icon Database](https://developer.lametric.com/icons)
 
 ## 🔧 Troubleshooting
 
+### MQTT Connection Issues
+
+If you're experiencing "MQTT connection timeout" or "no response from broker" errors:
+
+#### 🔍 **Quick Test Tool**
+
+Use the included test tool to diagnose MQTT issues:
+
+```bash
+# Download and run the test tool
+wget https://raw.githubusercontent.com/chr-braun/awtrix-mqtt-bridge/main/mqtt_test.py
+python3 mqtt_test.py <your_mqtt_host> <port> [username] [password]
+
+# Examples:
+python3 mqtt_test.py localhost 1883
+python3 mqtt_test.py core-mosquitto 1883
+python3 mqtt_test.py 192.168.1.100 1883 myuser mypass
+```
+
+#### 🏠 **Home Assistant Mosquitto Add-on**
+
+```yaml
+# Correct settings for HA Mosquitto add-on:
+Host: core-mosquitto
+Port: 1883
+Username: (your HA username)
+Password: (your HA password)
+```
+
+**Steps to verify:**
+1. Go to **Supervisor → Mosquitto broker**
+2. Ensure the add-on is **Started**
+3. Check add-on logs for errors
+4. Verify users are configured in add-on configuration
+
+#### 🐳 **External MQTT Broker**
+
+```yaml
+# Settings for external broker:
+Host: (IP address of MQTT server)
+Port: 1883
+Username: (MQTT username)
+Password: (MQTT password)
+```
+
+**Common issues:**
+- Firewall blocking port 1883
+- MQTT broker not running
+- Wrong IP address
+- Authentication issues
+
+#### 🔧 **Diagnostic Steps**
+
+1. **Test network connectivity:**
+   ```bash
+   telnet <mqtt_host> 1883
+   # Should connect if broker is reachable
+   ```
+
+2. **Check MQTT broker status:**
+   ```bash
+   # For Mosquitto:
+   sudo systemctl status mosquitto
+   
+   # For Docker:
+   docker ps | grep mosquitto
+   ```
+
+3. **Test MQTT directly:**
+   ```bash
+   # Subscribe test:
+   mosquitto_sub -h <host> -p 1883 -t test/topic
+   
+   # Publish test:
+   mosquitto_pub -h <host> -p 1883 -t test/topic -m "hello"
+   ```
+
+4. **Enable debug logging:**
+   Add to `configuration.yaml`:
+   ```yaml
+   logger:
+     logs:
+       custom_components.awtrix_mqtt_bridge: debug
+       paho.mqtt: debug
+   ```
+
 ### Common Issues
 
 **Connection Problems:**
@@ -147,6 +233,16 @@ Find more icons at: [Awtrix Icon Database](https://developer.lametric.com/icons)
 - Check Awtrix device is online
 - Verify custom app slots are enabled in Awtrix settings
 - Try the "Send to Awtrix" service manually
+
+### Error Messages Guide
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Connection timeout" | MQTT broker not responding | Check broker status, verify host/port |
+| "Connection refused" | Broker not running or wrong port | Start broker, check port 1883 |
+| "Authentication failed" | Wrong credentials | Verify username/password |
+| "Network not reachable" | Network/firewall issue | Check connectivity, firewall rules |
+| "Protocol version not supported" | MQTT version mismatch | Update broker or client |
 
 ### Debug Logging
 
