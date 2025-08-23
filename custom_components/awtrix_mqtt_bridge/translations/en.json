@@ -57,6 +57,14 @@
     "mqtt_diagnostic": {
       "name": "MQTT Diagnostic",
       "description": "Tests MQTT connection independently for debugging"
+    },
+    "mqtt_health_check": {
+      "name": "MQTT Health Check",
+      "description": "Performs comprehensive MQTT connectivity and functionality testing with detailed logging"
+    },
+    "get_mqtt_logs": {
+      "name": "Get MQTT Logs",
+      "description": "Retrieves and displays MQTT diagnostic logs and test results"
     }
   }
 }

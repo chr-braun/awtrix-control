@@ -20,6 +20,7 @@ from .const import (
     DEFAULT_AWTRIX_PORT,
     DEFAULT_MQTT_CLIENT_ID,
 )
+from .mqtt_health_checker import MQTTHealthChecker
 
 import logging
 _LOGGER = logging.getLogger(__name__)
@@ -274,6 +275,50 @@ class AwtrixMqttBridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.hass.async_add_executor_job(client.loop_stop)
             except Exception:
                 pass
+
+    async def _comprehensive_mqtt_test(self, config):
+        """Run comprehensive MQTT test using health checker."""
+        _LOGGER.info("🏥 Running comprehensive MQTT health check...")
+        
+        # Create health checker
+        health_checker = MQTTHealthChecker(self.hass)
+        
+        # Prepare config for health checker
+        health_config = {
+            "host": config[CONF_MQTT_HOST],
+            "port": config[CONF_MQTT_PORT],
+            "username": config.get(CONF_MQTT_USERNAME),
+            "password": config.get(CONF_MQTT_PASSWORD),
+            "client_id": config[CONF_MQTT_CLIENT_ID]
+        }
+        
+        try:
+            # Run health check
+            results = await health_checker.comprehensive_mqtt_check(health_config)
+            
+            # Check overall status
+            if results["overall_status"] == "passed":
+                _LOGGER.info("✅ Comprehensive MQTT test passed")
+                return True
+            elif results["overall_status"] == "partial":
+                _LOGGER.warning("⚠️ MQTT test passed with warnings")
+                return True  # Still allow setup with warnings
+            else:
+                # Get specific error details
+                failed_tests = [
+                    test_name for test_name, test_result in results["tests"].items()
+                    if not test_result.get("success", False)
+                ]
+                
+                error_msg = f"MQTT health check failed: {', '.join(failed_tests)}"
+                if results.get("recommendations"):
+                    error_msg += f"\n\nRecommendations:\n" + "\n".join(f"• {rec}" for rec in results["recommendations"][:3])
+                
+                raise Exception(error_msg)
+                
+        except Exception as exc:
+            _LOGGER.error("💥 Comprehensive MQTT test failed: %s", exc)
+            raise
 
     async def _test_awtrix_connection(self, config):
         """Test Awtrix connection."""

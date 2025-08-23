@@ -7,6 +7,7 @@ from homeassistant.const import ATTR_ENTITY_ID
 
 from .const import DOMAIN, CONF_MQTT_BASE_TOPIC
 from .coordinator import AwtrixMqttCoordinator
+from .mqtt_health_checker import MQTTHealthChecker
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,6 +18,8 @@ SERVICE_CLEAR_ALL_MAPPINGS = "clear_all_mappings"
 SERVICE_ADD_BULK_MAPPINGS = "add_bulk_mappings"
 SERVICE_CREATE_TEMPLATE = "create_template"
 SERVICE_MQTT_DIAGNOSTIC = "mqtt_diagnostic"
+SERVICE_MQTT_HEALTH_CHECK = "mqtt_health_check"
+SERVICE_GET_MQTT_LOGS = "get_mqtt_logs"
 
 ADD_SENSOR_MAPPING_SCHEMA = vol.Schema({
     vol.Required("sensor_entity_id"): cv.entity_id,
@@ -50,6 +53,13 @@ CREATE_TEMPLATE_SCHEMA = vol.Schema({
 })
 
 MQTT_DIAGNOSTIC_SCHEMA = vol.Schema({
+    vol.Required("mqtt_host"): cv.string,
+    vol.Optional("mqtt_port", default=1883): vol.Coerce(int),
+    vol.Optional("mqtt_username"): cv.string,
+    vol.Optional("mqtt_password"): cv.string,
+})
+
+MQTT_HEALTH_CHECK_SCHEMA = vol.Schema({
     vol.Required("mqtt_host"): cv.string,
     vol.Optional("mqtt_port", default=1883): vol.Coerce(int),
     vol.Optional("mqtt_username"): cv.string,
@@ -350,6 +360,98 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         except Exception as exc:
             _LOGGER.error("❌ MQTT diagnostic exception: %s", exc)
     
+    async def mqtt_health_check_service(call: ServiceCall) -> None:
+        """Comprehensive MQTT health check service."""
+        _LOGGER.info("🏥 Starting comprehensive MQTT health check...")
+        
+        # Create health checker instance
+        health_checker = MQTTHealthChecker(hass)
+        
+        # Prepare configuration
+        config = {
+            "host": call.data["mqtt_host"],
+            "port": call.data.get("mqtt_port", 1883),
+            "username": call.data.get("mqtt_username"),
+            "password": call.data.get("mqtt_password"),
+            "client_id": "awtrix_health_check"
+        }
+        
+        try:
+            # Run comprehensive health check
+            results = await health_checker.comprehensive_mqtt_check(config)
+            
+            # Log summary
+            status = results["overall_status"]
+            if status == "passed":
+                _LOGGER.info("🎉 MQTT Health Check PASSED - All tests successful!")
+            elif status == "partial":
+                _LOGGER.warning("⚠️ MQTT Health Check PARTIAL - Some issues detected")
+            else:
+                _LOGGER.error("❌ MQTT Health Check FAILED - Critical issues found")
+            
+            # Log test results summary
+            for test_name, test_result in results["tests"].items():
+                success = test_result.get("success", False)
+                duration = test_result.get("duration_seconds", 0)
+                status_icon = "✅" if success else "❌"
+                _LOGGER.info(f"{status_icon} {test_name.replace('_', ' ').title()}: {duration:.2f}s")
+            
+            # Log recommendations if any
+            if results.get("recommendations"):
+                _LOGGER.info("💡 Recommendations:")
+                for rec in results["recommendations"]:
+                    _LOGGER.info(f"  • {rec}")
+            
+            # Log file path for detailed results
+            log_path = health_checker.get_log_file_path()
+            _LOGGER.info(f"📄 Detailed results saved to: {log_path}")
+            
+        except Exception as exc:
+            _LOGGER.error("💥 Health check failed with exception: %s", exc)
+    
+    async def get_mqtt_logs_service(call: ServiceCall) -> None:
+        """Get MQTT diagnostic logs service."""
+        health_checker = MQTTHealthChecker(hass)
+        log_path = health_checker.get_log_file_path()
+        
+        try:
+            # Get last results from storage
+            last_results = await health_checker.get_last_results()
+            
+            if last_results:
+                timestamp = last_results.get("timestamp", "Unknown")
+                status = last_results.get("overall_status", "Unknown")
+                _LOGGER.info(f"📊 Last health check: {timestamp} - Status: {status}")
+                
+                # Log summary of last results
+                if "tests" in last_results:
+                    for test_name, test_result in last_results["tests"].items():
+                        success = test_result.get("success", False)
+                        status_icon = "✅" if success else "❌"
+                        _LOGGER.info(f"{status_icon} {test_name.replace('_', ' ').title()}")
+            else:
+                _LOGGER.info("ℹ️ No previous health check results found")
+                
+            _LOGGER.info(f"📄 Full diagnostic log available at: {log_path}")
+            
+            # Check if log file exists and show recent entries
+            try:
+                with open(log_path, 'r') as f:
+                    lines = f.readlines()
+                    if lines:
+                        _LOGGER.info("📋 Recent log entries (last 10 lines):")
+                        for line in lines[-10:]:
+                            _LOGGER.info(f"  {line.strip()}")
+                    else:
+                        _LOGGER.info("📄 Log file is empty")
+            except FileNotFoundError:
+                _LOGGER.info("📄 Log file not found - run health check first")
+            except Exception as exc:
+                _LOGGER.error(f"❌ Error reading log file: {exc}")
+                
+        except Exception as exc:
+            _LOGGER.error(f"💥 Error retrieving logs: {exc}")
+    
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -396,4 +498,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_MQTT_DIAGNOSTIC,
         mqtt_diagnostic_service,
         schema=MQTT_DIAGNOSTIC_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_MQTT_HEALTH_CHECK,
+        mqtt_health_check_service,
+        schema=MQTT_HEALTH_CHECK_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_MQTT_LOGS,
+        get_mqtt_logs_service
     )

@@ -164,3 +164,40 @@ mqtt_diagnostic:
       required: false
       selector:
         text:
+
+mqtt_health_check:
+  name: MQTT Gesundheitscheck
+  description: Führt detaillierte MQTT-Konnektivitäts- und Funktionstests mit Protokollierung durch
+  fields:
+    mqtt_host:
+      name: MQTT Host
+      description: MQTT Server Host/IP
+      required: true
+      selector:
+        text:
+    mqtt_port:
+      name: MQTT Port
+      description: MQTT Server Port
+      required: false
+      default: 1883
+      selector:
+        number:
+          min: 1
+          max: 65535
+    mqtt_username:
+      name: MQTT Benutzername
+      description: MQTT Benutzername (optional)
+      required: false
+      selector:
+        text:
+    mqtt_password:
+      name: MQTT Passwort
+      description: MQTT Passwort (optional)
+      required: false
+      selector:
+        text:
+
+get_mqtt_logs:
+  name: MQTT Diagnose-Logs abrufen
+  description: Ruft MQTT-Diagnose-Logs und Testergebnisse ab und zeigt sie an
+  fields: {}
