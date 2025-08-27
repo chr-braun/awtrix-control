@@ -1,0 +1,76 @@
+blueprint:
+  name: "AWTRIX Morgen-Routine"
+  description: "Zeigt Zeit und Wetter am Morgen an der AWTRIX an"
+  domain: automation
+  source_url: "https://github.com/chr-braun/awtrix-control"
+  homeassistant:
+    min_version: "2023.8.0"
+
+input:
+  time:
+    name: "Zeit"
+    description: "Wann soll die Morgen-Routine starten?"
+    default: "08:00:00"
+    selector:
+      time: {}
+  
+  temperature_sensor:
+    name: "Temperatur-Sensor"
+    description: "Welcher Sensor soll die Außentemperatur liefern?"
+    default: sensor.aussentemperatur
+    selector:
+      entity:
+        domain: sensor
+        device_class: temperature
+
+  weather_sensor:
+    name: "Wetter-Sensor"
+    description: "Welcher Sensor soll den Wetter-Status liefern?"
+    default: sensor.weather_condition
+    selector:
+      entity:
+        domain: sensor
+
+trigger:
+  - platform: time
+    at: !input time
+
+action:
+  # Begrüßung
+  - service: awtrix_control.send_text
+    data:
+      text: "Guten Morgen! ☀️"
+      color: "#FFD700"
+      effect: "fade"
+      duration: 5
+  
+  # Kurze Pause
+  - delay: "00:00:05"
+  
+  # Aktuelle Zeit
+  - service: awtrix_control.send_time
+    data:
+      color: "#FFFFFF"
+      slot: 0
+  
+  # Kurze Pause
+  - delay: "00:00:03"
+  
+  # Temperatur anzeigen
+  - service: awtrix_control.send_sensor
+    data:
+      sensor_name: "Außentemperatur"
+      sensor_entity: !input temperature_sensor
+      color: "#FF8000"
+      slot: 1
+  
+  # Kurze Pause
+  - delay: "00:00:03"
+  
+  # Wetter-Status
+  - service: awtrix_control.send_sensor
+    data:
+      sensor_name: "Wetter"
+      sensor_entity: !input weather_sensor
+      color: "#00FFFF"
+      slot: 2

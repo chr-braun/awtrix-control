@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AWTRIX Control",
+        "description": "Konfiguriere deine AWTRIX-Integration",
+        "data": {
+          "name": "Name",
+          "mqtt_topic": "MQTT Topic"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "AWTRIX Control ist bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AWTRIX Control Optionen",
+        "description": "Ändere die Einstellungen für AWTRIX Control",
+        "data": {
+          "mqtt_topic": "MQTT Topic"
+        }
+      }
+    }
+  }
+}
+
+

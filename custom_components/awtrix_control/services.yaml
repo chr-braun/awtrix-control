@@ -1,0 +1,85 @@
+send_text:
+  name: "AWTRIX Text senden"
+  description: "Sendet Text an AWTRIX"
+  fields:
+    text:
+      name: "Text"
+      description: "Der zu sendende Text"
+      required: true
+      example: "Hallo AWTRIX!"
+    slot:
+      name: "Slot"
+      description: "Display-Slot (0-7)"
+      required: false
+      default: 0
+      example: 0
+    color:
+      name: "Farbe"
+      description: "Textfarbe (Hex)"
+      required: false
+      default: "#00FF00"
+      example: "#00FF00"
+    icon:
+      name: "Icon"
+      description: "Icon-ID"
+      required: false
+      default: 1
+      example: 1
+    effect:
+      name: "Effekt"
+      description: "Display-Effekt"
+      required: false
+      default: "none"
+      example: "scroll"
+    duration:
+      name: "Dauer"
+      description: "Anzeigedauer in Sekunden"
+      required: false
+      default: 10
+      example: 10
+
+send_time:
+  name: "AWTRIX Zeit senden"
+  description: "Sendet aktuelle Zeit an AWTRIX"
+  fields:
+    slot:
+      name: "Slot"
+      description: "Display-Slot (0-7)"
+      required: false
+      default: 0
+      example: 0
+    color:
+      name: "Farbe"
+      description: "Textfarbe (Hex)"
+      required: false
+      default: "#FFFFFF"
+      example: "#FFFFFF"
+
+send_sensor:
+  name: "AWTRIX Sensor senden"
+  description: "Sendet Sensor-Wert an AWTRIX"
+  fields:
+    sensor_name:
+      name: "Sensor-Name"
+      description: "Name des Sensors"
+      required: true
+      example: "Temperatur"
+    sensor_entity:
+      name: "Sensor-Entity"
+      description: "Entity-ID des Sensors"
+      required: true
+      example: "sensor.temperatur"
+    slot:
+      name: "Slot"
+      description: "Display-Slot (0-7)"
+      required: false
+      default: 0
+      example: 0
+    color:
+      name: "Farbe"
+      description: "Textfarbe (Hex)"
+      required: false
+      default: "#00FFFF"
+      example: "#00FFFF"
+
+

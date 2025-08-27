@@ -1,0 +1,117 @@
+# Einfaches AWTRIX Control Dashboard
+# Kopieren Sie diesen Code in Ihre dashboard.yaml oder erstellen Sie eine neue Karte
+
+type: vertical-stack
+title: "AWTRIX Control"
+cards:
+  # Überschrift
+  - type: markdown
+    content: "## 🎯 AWTRIX Steuerung"
+    title: ""
+
+  # Zeit-Button
+  - type: button
+    name: "⏰ Zeit anzeigen"
+    icon: mdi:clock
+    tap_action:
+      action: call-service
+      service: awtrix_control.send_time
+      service_data:
+        color: "#FFFFFF"
+        slot: 0
+    hold_action:
+      action: call-service
+      service: awtrix_control.send_date
+      service_data:
+        color: "#00FFFF"
+        slot: 1
+
+  # Datum-Button
+  - type: button
+    name: "📅 Datum anzeigen"
+    icon: mdi:calendar
+    tap_action:
+      action: call-service
+      service: awtrix_control.send_date
+      service_data:
+        color: "#00FFFF"
+        slot: 1
+
+  # Test-Button
+  - type: button
+    name: "🧪 Test senden"
+    icon: mdi:test-tube
+    tap_action:
+      action: call-service
+      service: awtrix_control.send_test
+      service_data:
+        color: "#00FF00"
+        slot: 2
+
+  # Text-Eingabe
+  - type: input-text
+    name: "Nachricht eingeben"
+    id: awtrix_message
+    icon: mdi:message-text
+    max: 50
+
+  # Nachricht senden
+  - type: button
+    name: "📤 Nachricht senden"
+    icon: mdi:send
+    tap_action:
+      action: call-service
+      service: awtrix_control.send_text
+      service_data:
+        text: "{{ states('input_text.awtrix_message') }}"
+        color: "#FFD700"
+        effect: "scroll"
+        duration: 10
+        slot: 3
+
+  # Schnell-Aktionen
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: "🔴 Rot"
+        icon: mdi:circle
+        tap_action:
+          action: call-service
+          service: awtrix_control.send_text
+          service_data:
+            text: "Rot"
+            color: "#FF0000"
+            slot: 4
+
+      - type: button
+        name: "🟢 Grün"
+        icon: mdi:circle
+        tap_action:
+          action: call-service
+          service: awtrix_control.send_text
+          service_data:
+            text: "Grün"
+            color: "#00FF00"
+            slot: 4
+
+      - type: button
+        name: "🔵 Blau"
+        icon: mdi:circle
+        tap_action:
+          action: call-service
+          service: awtrix_control.send_text
+          service_data:
+            text: "Blau"
+            color: "#0000FF"
+            slot: 4
+
+  # Integration neu laden
+  - type: button
+    name: "🔄 Integration neu laden"
+    icon: mdi:reload
+    tap_action:
+      action: call-service
+      service: awtrix_control.reload_integration
+    hold_action:
+      action: call-service
+      service: homeassistant.restart

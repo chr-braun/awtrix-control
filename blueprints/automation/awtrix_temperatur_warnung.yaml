@@ -1,0 +1,96 @@
+blueprint:
+  name: "AWTRIX Temperatur-Warnung"
+  description: "Warnt bei zu hoher oder zu niedriger Temperatur"
+  domain: automation
+  source_url: "https://github.com/chr-braun/awtrix-control"
+  homeassistant:
+    min_version: "2023.8.0"
+
+input:
+  temperature_sensor:
+    name: "Temperatur-Sensor"
+    description: "Welcher Sensor soll überwacht werden?"
+    selector:
+      entity:
+        domain: sensor
+        device_class: temperature
+  
+  high_threshold:
+    name: "Obere Grenze (°C)"
+    description: "Ab welcher Temperatur soll gewarnt werden?"
+    default: 30
+    selector:
+      number:
+        min: -50
+        max: 100
+        step: 0.5
+        unit_of_measurement: "°C"
+  
+  low_threshold:
+    name: "Untere Grenze (°C)"
+    description: "Unter welcher Temperatur soll gewarnt werden?"
+    default: 5
+    selector:
+      number:
+        min: -50
+        max: 100
+        step: 0.5
+        unit_of_measurement: "°C"
+  
+  high_color:
+    name: "Farbe für zu hohe Temperatur"
+    description: "Welche Farbe soll bei zu hoher Temperatur verwendet werden?"
+    default: "#FF0000"
+    selector:
+      color_rgb: {}
+  
+  low_color:
+    name: "Farbe für zu niedrige Temperatur"
+    description: "Welche Farbe soll bei zu niedriger Temperatur verwendet werden?"
+    default: "#0000FF"
+    selector:
+      color_rgb: {}
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input temperature_sensor
+    above: !input high_threshold
+  - platform: numeric_state
+    entity_id: !input temperature_sensor
+    below: !input low_threshold
+
+condition:
+  - condition: template
+    value: >
+      {% set temp = states(input.temperature_sensor) | float %}
+      {% set high = input.high_threshold | float %}
+      {% set low = input.low_threshold | float %}
+      {{ temp > high or temp < low }}
+
+action:
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input temperature_sensor
+            above: !input high_threshold
+        sequence:
+          - service: awtrix_control.send_text
+            data:
+              text: "⚠️ Temperatur zu hoch!"
+              color: !input high_color
+              effect: "blink"
+              duration: 30
+              slot: 0
+      
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input temperature_sensor
+            below: !input low_threshold
+        sequence:
+          - service: awtrix_control.send_text
+            data:
+              text: "❄️ Temperatur zu niedrig!"
+              color: !input low_color
+              effect: "blink"
+              duration: 30
+              slot: 0

@@ -1,0 +1,221 @@
+blueprint:
+  name: "AWTRIX Sensor-Animation"
+  description: "Erstellt automatische Animationen für Sensordaten mit vielen Einstellungsmöglichkeiten"
+  domain: automation
+  source_url: "https://github.com/chr-braun/awtrix-control"
+  homeassistant:
+    min_version: "2023.8.0"
+
+input:
+  # Sensor-Auswahl
+  sensor_entity:
+    name: "Sensor auswählen"
+    description: "Welcher Sensor soll überwacht werden?"
+    selector:
+      entity:
+        domain: sensor
+  
+  # Animation-Name
+  animation_name:
+    name: "Name der Animation"
+    description: "Wie soll die Animation heißen?"
+    default: "Sensor-Animation"
+    selector:
+      text: {}
+  
+  # Zeitplanung
+  start_time:
+    name: "Start-Zeit"
+    description: "Wann soll die Animation starten?"
+    default: "08:00:00"
+    selector:
+      time: {}
+  
+  end_time:
+    name: "End-Zeit"
+    description: "Wann soll die Animation enden?"
+    default: "22:00:00"
+    selector:
+      time: {}
+  
+  # Update-Intervall
+  update_interval:
+    name: "Update-Intervall (Minuten)"
+    description: "Wie oft soll der Sensor aktualisiert werden?"
+    default: 5
+    selector:
+      number:
+        min: 1
+        max: 60
+        step: 1
+        unit_of_measurement: "Minuten"
+  
+  # Animation-Einstellungen
+  text_color:
+    name: "Text-Farbe"
+    description: "Welche Farbe soll der Text haben?"
+    default: "#00FF00"
+    selector:
+      color_rgb: {}
+  
+  effect_type:
+    name: "Effekt-Typ"
+    description: "Welcher Animationseffekt soll verwendet werden?"
+    default: "scroll"
+    selector:
+      select:
+        options:
+          - "none"
+          - "scroll"
+          - "fade"
+          - "blink"
+          - "rainbow"
+  
+  animation_duration:
+    name: "Animation-Dauer (Sekunden)"
+    description: "Wie lange soll die Animation angezeigt werden?"
+    default: 10
+    selector:
+      number:
+        min: 1
+        max: 60
+        step: 1
+        unit_of_measurement: "Sekunden"
+  
+  slot_number:
+    name: "Slot-Nummer"
+    description: "Welcher AWTRIX-Slot soll verwendet werden?"
+    default: 0
+    selector:
+      number:
+        min: 0
+        max: 7
+        step: 1
+  
+  # Schwellenwerte
+  threshold_enabled:
+    name: "Schwellenwerte aktivieren"
+    description: "Soll die Animation nur bei bestimmten Werten starten?"
+    default: false
+    selector:
+      boolean: {}
+  
+  threshold_min:
+    name: "Minimaler Wert"
+    description: "Unter welchem Wert soll die Animation nicht starten?"
+    default: -50
+    selector:
+      number:
+        min: -100
+        max: 100
+        step: 0.1
+  
+  threshold_max:
+    name: "Maximaler Wert"
+    description: "Über welchem Wert soll die Animation nicht starten?"
+    default: 100
+    selector:
+      number:
+        min: -100
+        max: 100
+        step: 0.1
+  
+  # Benachrichtigungen
+  notification_enabled:
+    name: "Benachrichtigungen aktivieren"
+    description: "Soll eine Benachrichtigung gesendet werden?"
+    default: false
+    selector:
+      boolean: {}
+  
+  notification_text:
+    name: "Benachrichtigungstext"
+    description: "Welcher Text soll bei Schwellenwert-Überschreitung angezeigt werden?"
+    default: "Warnung: Schwellenwert überschritten!"
+    selector:
+      text: {}
+  
+  notification_color:
+    name: "Benachrichtigungsfarbe"
+    description: "Welche Farbe soll die Benachrichtigung haben?"
+    default: "#FF0000"
+    selector:
+      color_rgb: {}
+
+trigger:
+  # Zeit-basierter Trigger
+  - platform: time_pattern
+    minutes: "/{{ input.update_interval }}"
+  
+  # Sensor-Änderung Trigger (falls Schwellenwerte aktiviert)
+  - platform: numeric_state
+    entity_id: "{{ input.sensor_entity }}"
+    above: "{{ input.threshold_max }}"
+    enabled: "{{ input.threshold_enabled }}"
+  
+  - platform: numeric_state
+    entity_id: "{{ input.sensor_entity }}"
+    below: "{{ input.threshold_min }}"
+    enabled: "{{ input.threshold_enabled }}"
+
+condition:
+  # Zeit-Bedingung
+  - condition: time
+    after: "{{ input.start_time }}"
+    before: "{{ input.end_time }}"
+  
+  # Schwellenwert-Bedingung (falls aktiviert)
+  - condition: or
+    conditions:
+      - condition: not
+        conditions:
+          - condition: numeric_state
+            entity_id: "{{ input.sensor_entity }}"
+            above: "{{ input.threshold_max }}"
+      - condition: not
+        conditions:
+          - condition: numeric_state
+            entity_id: "{{ input.sensor_entity }}"
+            below: "{{ input.threshold_min }}"
+    enabled: "{{ input.threshold_enabled }}"
+
+action:
+  # Haupt-Animation senden
+  - service: awtrix_control.send_sensor
+    data:
+      sensor_name: "{{ input.animation_name }}"
+      sensor_entity: "{{ input.sensor_entity }}"
+      color: "{{ input.text_color }}"
+      slot: "{{ input.slot_number }}"
+      effect: "{{ input.effect_type }}"
+      duration: "{{ input.animation_duration }}"
+  
+  # Benachrichtigung senden (falls aktiviert)
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: "{{ input.sensor_entity }}"
+            above: "{{ input.threshold_max }}"
+        sequence:
+          - service: awtrix_control.send_text
+            data:
+              text: "{{ input.notification_text }}"
+              color: "{{ input.notification_color }}"
+              effect: "blink"
+              duration: 15
+              slot: "{{ input.slot_number }}"
+        enabled: "{{ input.notification_enabled }}"
+      
+      - conditions:
+          - condition: numeric_state
+            entity_id: "{{ input.sensor_entity }}"
+            below: "{{ input.threshold_min }}"
+        sequence:
+          - service: awtrix_control.send_text
+            data:
+              text: "{{ input.notification_text }}"
+              color: "{{ input.notification_color }}"
+              effect: "blink"
+              duration: 15
+              slot: "{{ input.slot_number }}"
+        enabled: "{{ input.notification_enabled }}"

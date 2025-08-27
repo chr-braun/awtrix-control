@@ -1,0 +1,13 @@
+{
+  "domain": "awtrix_control",
+  "name": "AWTRIX Control",
+  "documentation": "https://github.com/chr-braun/awtrix-control",
+  "issue_tracker": "https://github.com/chr-braun/awtrix-control/issues",
+  "dependencies": ["mqtt"],
+  "codeowners": ["@chr-braun"],
+  "requirements": [],
+  "version": "1.2.0",
+  "iot_class": "local_push",
+  "config_flow": true,
+  "icon": "mdi:matrix"
+}

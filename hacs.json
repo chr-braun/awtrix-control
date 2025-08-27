@@ -1,25 +1,4 @@
 {
-  "name": "Awtrix MQTT Bridge",
-  "content_in_root": false,
-  "filename": "awtrix_mqtt_bridge.zip",
-  "country": [
-    "DE",
-    "AT",
-    "CH",
-    "US",
-    "GB",
-    "NL",
-    "FR"
-  ],
-  "render_readme": true,
-  "domains": [
-    "sensor",
-    "switch"
-  ],
-  "iot_class": "Local Push",
-  "homeassistant": "2023.5.0",
-  "brand": {
-    "name": "Awtrix",
-    "icon": "icon.svg"
-  }
+  "name": "AWTRIX Control",
+  "render_readme": true
 }
